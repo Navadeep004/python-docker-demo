@@ -4,46 +4,40 @@ pipeline {
 
     stages {
 
-        stage('Build') {
-            steps {
-                echo "Building Application..."
-                sleep 5
-            }
-        }
+        stage('Parallel Demo') {
 
-        stage('Parallel Tasks') {
+            failFast true
 
             parallel {
 
                 stage('Unit Test') {
+
                     steps {
                         echo "Running Unit Tests..."
                         sleep 10
                     }
+
                 }
 
                 stage('Lint') {
+
                     steps {
-                        echo "Running Lint Check..."
-                        sleep 10
+                        error "Lint Check Failed!"
                     }
+
                 }
 
                 stage('Security Scan') {
+
                     steps {
                         echo "Running Security Scan..."
-                        sleep 10
+                        sleep 20
                     }
+
                 }
 
             }
 
-        }
-
-        stage('Deploy') {
-            steps {
-                echo "Deploying Application..."
-            }
         }
 
     }
