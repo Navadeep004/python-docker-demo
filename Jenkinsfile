@@ -1,110 +1,49 @@
 pipeline {
 
-    agent {
-        label 'docker'
-    }
-
-    environment {
-
-        IMAGE_NAME = "python-demo"
-
-        IMAGE_TAG = "${BUILD_NUMBER}"
-
-        DOCKER_USERNAME = "YOUR_DOCKER_USERNAME"
-
-    }
+    agent any
 
     stages {
 
-        stage('Checkout') {
-
+        stage('Build') {
             steps {
-
-                checkout scm
-
+                echo "Building Application..."
+                sleep 5
             }
-
         }
 
-        stage('Build Docker Image') {
+        stage('Parallel Tasks') {
 
-            steps {
+            parallel {
 
-                sh '''
-                docker build \
-                -t ${DOCKER_USERNAME}/${IMAGE_NAME}:${IMAGE_TAG} .
-                '''
+                stage('Unit Test') {
+                    steps {
+                        echo "Running Unit Tests..."
+                        sleep 10
+                    }
+                }
 
-            }
+                stage('Lint') {
+                    steps {
+                        echo "Running Lint Check..."
+                        sleep 10
+                    }
+                }
 
-        }
-
-        stage('Verify Image') {
-
-            steps {
-
-                sh 'docker images'
-
-            }
-
-        }
-
-        stage('Docker Login') {
-
-            steps {
-
-                withCredentials([
-                    usernamePassword(
-                        credentialsId: 'dockerhub-login',
-                        usernameVariable: 'DOCKER_USER',
-                        passwordVariable: 'DOCKER_PASS'
-                    )
-                ]) {
-
-                    sh '''
-                    echo "$DOCKER_PASS" | docker login \
-                    -u "$DOCKER_USER" \
-                    --password-stdin
-                    '''
-
+                stage('Security Scan') {
+                    steps {
+                        echo "Running Security Scan..."
+                        sleep 10
+                    }
                 }
 
             }
 
         }
 
-        stage('Push Image') {
-
+        stage('Deploy') {
             steps {
-
-                sh '''
-                docker push ${DOCKER_USERNAME}/${IMAGE_NAME}:${IMAGE_TAG}
-                '''
-
+                echo "Deploying Application..."
             }
-
-        }
-
-    }
-
-    post {
-
-        success {
-
-            echo "Pipeline Completed Successfully!"
-
-        }
-
-        failure {
-
-            echo "Pipeline Failed"
-
-        }
-
-        always {
-
-            sh 'docker logout || true'
-
         }
 
     }
