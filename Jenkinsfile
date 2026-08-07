@@ -2,15 +2,27 @@
 
 pipeline {
 
-    agent any
+    agent {
+        label 'docker'
+    }
 
     stages {
 
-        stage('Test Library') {
+        stage('Library Test') {
 
             steps {
 
                 hello()
+
+            }
+
+        }
+
+        stage('Docker Build') {
+
+            steps {
+
+                dockerBuild("python-demo")
 
             }
 
