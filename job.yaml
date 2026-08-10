@@ -1,0 +1,16 @@
+apiVersion: batch/v1
+kind: Job
+
+metadata:
+  name: python-demo
+  namespace: jenkins
+
+spec:
+  template:
+    spec:
+      containers:
+        - name: python-demo
+          image: navadeep04/python-demo:7
+      restartPolicy: Never
+
+  backoffLimit: 2
