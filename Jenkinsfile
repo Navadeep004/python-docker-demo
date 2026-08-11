@@ -5,23 +5,25 @@ pipeline {
     }
 
     environment {
-        IMAGE_NAME = 'navadeep04/jenkins-k8s-demo'
-        IMAGE_TAG = "${BUILD_NUMBER}"
+        IMAGE_NAME = 'navadeep04/flask-k8s-demo'
+        IMAGE_TAG  = '1'
     }
 
     stages {
 
         stage('Checkout') {
             steps {
+                echo 'Checking out source code...'
                 checkout scm
             }
         }
 
         stage('Docker Build') {
             steps {
-                sh """
-                    docker build -t ${IMAGE_NAME}:${IMAGE_TAG} .
-                """
+                sh '''
+                    docker build \
+                    -t ${IMAGE_NAME}:${IMAGE_TAG} .
+                '''
             }
         }
 
@@ -45,9 +47,9 @@ pipeline {
 
         stage('Push Image') {
             steps {
-                sh """
+                sh '''
                     docker push ${IMAGE_NAME}:${IMAGE_TAG}
-                """
+                '''
             }
         }
 
@@ -59,14 +61,20 @@ pipeline {
                         variable: 'KUBECONFIG'
                     )
                 ]) {
-                    sh """
-                        kubectl set image deployment/jenkins-k8s-demo \
-                        jenkins-k8s-demo=${IMAGE_NAME}:${IMAGE_TAG} \
-                        -n jenkins
+                    sh '''
+                        echo "===== Kubernetes Context ====="
+                        kubectl config current-context
 
-                        kubectl rollout status deployment/jenkins-k8s-demo \
-                        -n jenkins
-                    """
+                        echo "===== Deploying Application ====="
+                        kubectl apply -f deployment.yaml
+                        kubectl apply -f service.yaml
+
+                        echo "===== Deployment ====="
+                        kubectl get deployment flask-k8s-demo -n jenkins
+
+                        echo "===== Pods ====="
+                        kubectl get pods -n jenkins
+                    '''
                 }
             }
         }
@@ -75,6 +83,14 @@ pipeline {
     post {
         always {
             sh 'docker logout || true'
+        }
+
+        success {
+            echo 'Pipeline completed successfully!'
+        }
+
+        failure {
+            echo 'Pipeline failed!'
         }
     }
 }

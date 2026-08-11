@@ -2,7 +2,7 @@ apiVersion: apps/v1
 kind: Deployment
 
 metadata:
-  name: jenkins-k8s-demo
+  name: flask-k8s-demo
   namespace: jenkins
 
 spec:
@@ -10,15 +10,19 @@ spec:
 
   selector:
     matchLabels:
-      app: jenkins-k8s-demo
+      app: flask-k8s-demo
 
   template:
     metadata:
       labels:
-        app: jenkins-k8s-demo
+        app: flask-k8s-demo
 
     spec:
       containers:
-        - name: jenkins-k8s-demo
-          image: navadeep04/jenkins-k8s-demo:1
+        - name: flask-k8s-demo
+          image: navadeep04/flask-k8s-demo:1
+
+          ports:
+            - containerPort: 5000
+
           imagePullPolicy: Always
