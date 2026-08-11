@@ -7,21 +7,13 @@ pipeline {
     stages {
 
         stage('Docker Build') {
-
             steps {
-
-                sh '''
-                    docker build -t navadeep04/python-demo:7 .
-                '''
-
+                sh 'docker build -t navadeep04/jenkins-k8s-demo:1 .'
             }
-
         }
 
         stage('Docker Login') {
-
             steps {
-
                 withCredentials([
                     usernamePassword(
                         credentialsId: 'dockerhub-login',
@@ -29,31 +21,20 @@ pipeline {
                         passwordVariable: 'DOCKER_PASS'
                     )
                 ]) {
-
                     sh '''
                         echo "$DOCKER_PASS" | docker login -u "$DOCKER_USER" --password-stdin
                     '''
-
                 }
-
             }
-
         }
 
         stage('Push Image') {
-
             steps {
-
-                sh '''
-                    docker push navadeep04/python-demo:7
-                '''
-
+                sh 'docker push navadeep04/jenkins-k8s-demo:1'
             }
-
         }
 
         stage('Deploy to Kubernetes') {
-
             steps {
 
                 withCredentials([
@@ -67,36 +48,25 @@ pipeline {
                         echo "===== Kubernetes Context ====="
                         kubectl config current-context
 
-                        echo ""
-                        echo "===== Deploying Job ====="
-                        kubectl apply -f job.yaml
+                        echo "===== Deploying Application ====="
+                        kubectl apply -f deployment.yaml
 
-                        echo ""
-                        echo "===== Job Status ====="
-                        kubectl get jobs -n jenkins
+                        echo "===== Deployments ====="
+                        kubectl get deployments -n jenkins
 
-                        echo ""
-                        echo "===== Pod Status ====="
+                        echo "===== Pods ====="
                         kubectl get pods -n jenkins
-
-                        echo ""
-                        echo "===== Waiting for Job ====="
-                        kubectl wait --for=condition=complete job/python-demo -n jenkins --timeout=120s
-
-                        echo ""
-                        echo "===== Application Logs ====="
-                        kubectl logs job/python-demo -n jenkins
                     '''
-
                 }
-
             }
-
         }
-
     }
 
     post {
+
+        always {
+            sh 'docker logout || true'
+        }
 
         success {
             echo 'Pipeline completed successfully!'
@@ -105,11 +75,5 @@ pipeline {
         failure {
             echo 'Pipeline failed!'
         }
-
-        always {
-            sh 'docker logout || true'
-        }
-
     }
-
 }
