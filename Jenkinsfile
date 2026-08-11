@@ -5,15 +5,14 @@ pipeline {
     }
 
     environment {
-        IMAGE_NAME = 'navadeep04/flask-k8s-demo'
-        IMAGE_TAG  = '1'
+        IMAGE_NAME = "navadeep04/flask-k8s-demo"
+        IMAGE_TAG = "2"
     }
 
     stages {
 
         stage('Checkout') {
             steps {
-                echo 'Checking out source code...'
                 checkout scm
             }
         }
@@ -21,8 +20,7 @@ pipeline {
         stage('Docker Build') {
             steps {
                 sh '''
-                    docker build \
-                    -t ${IMAGE_NAME}:${IMAGE_TAG} .
+                    docker build -t ${IMAGE_NAME}:${IMAGE_TAG} .
                 '''
             }
         }
@@ -65,15 +63,96 @@ pipeline {
                         echo "===== Kubernetes Context ====="
                         kubectl config current-context
 
-                        echo "===== Deploying Application ====="
-                        kubectl apply -f deployment.yaml
-                        kubectl apply -f service.yaml
+                        echo "===== Current Deployment Image ====="
 
-                        echo "===== Deployment ====="
-                        kubectl get deployment flask-k8s-demo -n jenkins
+                        kubectl get deployment flask-k8s-demo \
+                        -n jenkins \
+                        -o jsonpath="{.spec.template.spec.containers[0].image}"
+
+                        echo
+
+                        echo "===== Updating Deployment ====="
+
+                        kubectl set image deployment/flask-k8s-demo \
+                        flask-k8s-demo=${IMAGE_NAME}:${IMAGE_TAG} \
+                        -n jenkins
+
+                        echo "===== Waiting for Rollout ====="
+
+                        kubectl rollout status deployment/flask-k8s-demo \
+                        -n jenkins
+                    '''
+                }
+            }
+        }
+
+        stage('Verify Deployment') {
+            steps {
+                withCredentials([
+                    file(
+                        credentialsId: 'k8s-jenkins-config',
+                        variable: 'KUBECONFIG'
+                    )
+                ]) {
+                    sh '''
+                        echo "===== Deployment Status ====="
+
+                        kubectl get deployment flask-k8s-demo \
+                        -n jenkins
 
                         echo "===== Pods ====="
-                        kubectl get pods -n jenkins
+
+                        kubectl get pods \
+                        -n jenkins
+
+                        echo "===== Deployment Image ====="
+
+                        kubectl get deployment flask-k8s-demo \
+                        -n jenkins \
+                        -o jsonpath="{.spec.template.spec.containers[0].image}"
+
+                        echo
+                    '''
+                }
+            }
+        }
+
+        stage('Rollback') {
+            steps {
+                withCredentials([
+                    file(
+                        credentialsId: 'k8s-jenkins-config',
+                        variable: 'KUBECONFIG'
+                    )
+                ]) {
+                    sh '''
+                        echo "===== Deployment History ====="
+
+                        kubectl rollout history deployment/flask-k8s-demo \
+                        -n jenkins
+
+                        echo "===== Rolling Back Deployment ====="
+
+                        kubectl rollout undo deployment/flask-k8s-demo \
+                        -n jenkins
+
+                        echo "===== Waiting for Rollback ====="
+
+                        kubectl rollout status deployment/flask-k8s-demo \
+                        -n jenkins
+
+                        echo "===== Rollback Completed ====="
+
+                        kubectl get deployment flask-k8s-demo \
+                        -n jenkins
+
+                        echo "===== Current Image ====="
+
+                        kubectl get deployment flask-k8s-demo \
+                        -n jenkins \
+                        -o jsonpath="{.spec.template.spec.containers[0].image}"
+
+                        echo
                     '''
                 }
             }
